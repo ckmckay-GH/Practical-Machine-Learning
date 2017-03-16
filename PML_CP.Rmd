@@ -1,0 +1,109 @@
+---
+title: "Practical Machine Learning Course Project"
+author: "Charles McKay"
+date: "3/15/2017"
+output: html_document
+---
+
+## Executive Summary
+A random forest model was trained using data gathered from sensors worn by subjects as they performed certain exercised in correct an incorrect ways.  The model's objective is to predict the "classe" of the exercise performed based on whether it was correct "A" or incorrect in a specific way ("B", "C", "D", or "E").  The model was highly accurate and produced 100% accuracy on the validation data subset from the original "training" dataset provided.
+
+## Analysis Description
+This analysis predicts the manner in which a subject completed an exercise based on physical activity sensor data.  Five possible "classe" outcomes (A,B,C,D,E) are possible based on how the subject was instructed to perform the exercise.
+
+The data for this analysis comes from accelerometers on the belt, forearm, arm, and dumbell of 6 participants. They were asked to perform barbell lifts correctly ("classe:" A) and incorrectly in 5 different ways ("classe:" B, C, D, E).  More information is on teh dataset is available from this website: http://groupware.les.inf.puc-rio.br/har (see the section on the Weight Lifting Exercise Dataset).
+
+## Load data, r packages, and other set-up tasks
+```{r setup, echo=TRUE}
+pml_cp_train <- read.csv("https://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv", 
+        stringsAsFactor = FALSE, na.strings = c("", "NA", "#DIV/0!"))
+pml_cp_test <- read.csv("https://d396qusza40orc.cloudfront.net/predmachlearn/pml-testing.csv", 
+        stringsAsFactor = FALSE, na.strings = c("", "NA", "#DIV/0!"))
+library(caret)
+library(Hmisc)
+library(RGtk2)
+library(rpart.plot)
+library(rpart)
+library(rattle)
+library(pgmm)
+library(randomForest)
+library(parallel)
+library(doParallel)
+set.seed(9734)
+```
+
+## Clean training data set
+Remove data that won't be used in the analysis: non-predictive columns (e.g., index, data/time stamp, subject, etc.), near zero variation columns, and columns with predominately "NA" values.
+```{r clean, echo=TRUE}
+## remove non-predictive columns
+pml_cp_train <- pml_cp_train[,-(1:7)]
+## remove near zero variation columns
+nzv <- nearZeroVar(pml_cp_train, saveMetrics=TRUE)
+pml_cp_train <- pml_cp_train[,nzv$nzv==FALSE]
+## remove predominantly "NA" columns
+NA_cols <- sapply(pml_cp_train, function(x) mean(is.na(x))) > 0.9
+pml_cp_train <- pml_cp_train[, NA_cols==FALSE]
+## coerce "classe" to factor
+pml_cp_train$classe <- as.factor(pml_cp_train$classe)
+```
+## Split testing dataset for modeling & validation
+```{r split, echo=TRUE}
+## 60% training, 40% validation
+inTrain <- createDataPartition(y=pml_cp_train$classe, p = 0.6, list = FALSE)
+pml_cp_train <- pml_cp_train[inTrain,]
+pml_cp_val <- pml_cp_train[-inTrain,]
+```
+
+## Modeling Approach
+### Tree Model
+The rpart tree model approach yielded fairly poor accuracy.  Additional anlaysis was not performed with this model.
+```{r trees, echo=TRUE}
+pmlFit1 <- train(classe ~ ., method="rpart", data=pml_cp_train)
+fancyRpartPlot(pmlFit1$finalModel)
+pmlFit1
+```
+
+### Random Forest 
+A random forest model was trained.  This approach yielded much higher accuracy.  The model was run with cross validation folds ("cv") set to 3, 4, 5, and 6.  The highest accuracy (by a very slight margin) was achieved with 5 folds.   This model was used used for the test. 
+```{r rf, echo=TRUE}
+## Configure parallel processing
+cluster <- makeCluster(detectCores() - 1) # convention to leave 1 core for OS
+registerDoParallel(cluster)
+## Configure trainControl object
+fitControl <- trainControl(method = "cv",
+                           number = 5,
+                           allowParallel = TRUE)
+## Run model
+pmlFit2 <- train(classe ~ ., method="rf", data=pml_cp_train, trControl=fitControl, prox=TRUE)
+## De-register parallel processing cluster
+stopCluster(cluster)
+registerDoSEQ()
+## Model Output
+pmlFit2
+```
+## Prediction with Validation data
+The Confusion Matrix below shows the prediction accuracy of the model against the validation data.  The model's accuracy against the validation data was 1.
+```{r confM, echo=TRUE}
+confusionMatrix(pml_cp_val$classe, predict(pmlFit2, pml_cp_val))
+```
+## Testing
+### Clean testing dataset by replicating testing dataset process
+Remove data that won't be used in the analysis: non-predictive columns (e.g., index, data/time stamp, subject, etc.), near zero variation columns, and columns with predominately "NA" values.
+```{r clean2, echo=TRUE}
+## remove non-predictive columns
+pml_cp_test <- pml_cp_test[,-(1:7)]
+## remove near zero variation columns
+nzv <- nearZeroVar(pml_cp_test, saveMetrics=TRUE)
+pml_cp_test <- pml_cp_test[,nzv$nzv==FALSE]
+## remove predominantly "NA" columns
+NA_cols <- sapply(pml_cp_test, function(x) mean(is.na(x))) > 0.9
+pml_cp_test <- pml_cp_test[, NA_cols==FALSE]
+```
+### Predictions from test dataset
+```{r test, echo=TRUE}
+pred <- predict(pmlFit2, pml_cp_test)
+testResults <- data.frame(problem_id=pml_cp_test$problem_id, pred=pred)
+testResults
+```
+
+
