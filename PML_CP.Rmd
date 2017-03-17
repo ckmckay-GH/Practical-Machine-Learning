@@ -64,7 +64,7 @@ pmlFit1
 ```
 
 ### Random Forest 
-A random forest model was trained.  This approach yielded much higher accuracy.  The model was run with cross validation folds ("cv") set to 3, 4, 5, and 6.  The highest accuracy (by a very slight margin) was achieved with 5 folds.   This model was used used for the test. 
+A random forest model was trained.  This approach yielded much higher accuracy.  The model was run with cross validation folds ("cv") set to 3, 4, 5, and 6.  The highest accuracy (by a very slight margin) was achieved with 5 folds.   This model was used for the test. 
 ```{r rf, echo=TRUE}
 ## Configure parallel processing
 cluster <- makeCluster(detectCores() - 1) # convention to leave 1 core for OS
