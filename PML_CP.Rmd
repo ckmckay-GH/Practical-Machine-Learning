@@ -2,16 +2,18 @@
 title: "Practical Machine Learning Course Project"
 author: "Charles McKay"
 date: "3/15/2017"
-output: html_document
+output: 
+  html_document: 
+    keep_md: yes
 ---
 
 ## Executive Summary
-A random forest model was trained using data gathered from sensors worn by subjects as they performed certain exercised in correct an incorrect ways.  The model's objective is to predict the "classe" of the exercise performed based on whether it was correct "A" or incorrect in a specific way ("B", "C", "D", or "E").  The model was highly accurate and produced 100% accuracy on the validation data subset from the original "training" dataset provided.
+A random forest model was trained using data gathered from sensors worn by subjects as they performed certain exercises in correct and incorrect ways.  The model's objective is to predict the "classe" of the exercise performed based on whether it was correct "A" or incorrect in a specific way ("B", "C", "D", or "E").  The final model was highly accurate in training and produced 100% accuracy on the validation data subset from the original "training" dataset provided.
 
 ## Analysis Description
 This analysis predicts the manner in which a subject completed an exercise based on physical activity sensor data.  Five possible "classe" outcomes (A,B,C,D,E) are possible based on how the subject was instructed to perform the exercise.
 
-The data for this analysis comes from accelerometers on the belt, forearm, arm, and dumbell of 6 participants. They were asked to perform barbell lifts correctly ("classe:" A) and incorrectly in 5 different ways ("classe:" B, C, D, E).  More information is on teh dataset is available from this website: http://groupware.les.inf.puc-rio.br/har (see the section on the Weight Lifting Exercise Dataset).
+The data for this analysis comes from accelerometers on the belt, forearm, arm, and dumbell of 6 participants. They were asked to perform barbell lifts correctly ("classe:" A) and incorrectly in 5 different ways ("classe:" B, C, D, E).  More information is on the dataset is available from this website: http://groupware.les.inf.puc-rio.br/har (see the section on the Weight Lifting Exercise Dataset).
 
 ## Load data, r packages, and other set-up tasks
 ```{r setup, echo=TRUE}
@@ -66,7 +68,7 @@ pmlFit1
 ### Random Forest 
 A random forest model was trained.  This approach yielded much higher accuracy.  The model was run with cross validation folds ("cv") set to 3, 4, 5, and 6.  The highest accuracy (by a very slight margin) was achieved with 5 folds.   This model was used for the test. 
 ```{r rf, echo=TRUE}
-## Configure parallel processing
+## Configure parallel processing, thanks Len!
 cluster <- makeCluster(detectCores() - 1) # convention to leave 1 core for OS
 registerDoParallel(cluster)
 ## Configure trainControl object
